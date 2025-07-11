@@ -16,7 +16,9 @@ This service can be running locally and integrate with **Sonnar**,  **Raddar** o
 This can be expanded with other torrent site that needs scraping.
 
 
-## Integrate with Sonnar
+## Tutorials
+
+### Integrate with Sonnar
 coming soon...
 
 ## Endpoints
