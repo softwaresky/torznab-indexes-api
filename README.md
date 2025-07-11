@@ -9,7 +9,8 @@ Supported Trackers:
 <details>
 
 <summary>Public Trackers</summary>
-    - [TorrentGalaxy - TGX](https://torrentgalaxy.one/)
+    
+        - [TorrentGalaxy - TGX](https://torrentgalaxy.one/)
 
 
 </details>
