@@ -1,0 +1,1 @@
+from torznab_indexes_api.routers.tgx_router import router as tgx_router
