@@ -1,7 +1,9 @@
 # Search Query
 
 URL: `/tgx/api`
+
 Method: `GET`
+
 Parameters: 
 - t = One of the following ( `caps`, `search`, `tvsearch`, `movie` )
 - q = Query search
