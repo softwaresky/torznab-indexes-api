@@ -12,7 +12,10 @@ Parameters:
 
 Code: `200 OK`
 
-```xml
+<details>
+  <summary>Content example</summary>
+
+  ```xml
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
   <rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed" version="2.0">
     <channel>
@@ -1125,3 +1128,10 @@ Code: `200 OK`
     </channel>
   </rss>
 ```
+</details>
+
+## Error Responses
+
+Code: XXX
+
+
