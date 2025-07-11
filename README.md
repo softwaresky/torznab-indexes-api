@@ -7,6 +7,8 @@ This service can be running locally and integrate with **Sonnar**,  **Raddar** o
 Supported Trackers:
 
 <details>
-    <summary>Public Trackers</summary>
-        * [TorrentGalaxy - TGX](https://torrentgalaxy.one/)
+<summary>Public Trackers</summary>
+    
+* TorrentGalaxy [TGX](https://torrentgalaxy.one/)
+    
 </details>
