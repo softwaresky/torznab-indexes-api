@@ -11,5 +11,4 @@ Supported Trackers:
 <summary>Public Trackers</summary>
     - [TorrentGalaxy - TGX](https://torrentgalaxy.one/)
 
-
 </details>
