@@ -19,6 +19,11 @@ This can be expanded with other torrent site that needs scraping.
 ## Integrate with Sonnar
 coming soon...
 
+## Endpoints
+- [Search Query](./docs/search_query.md): `GET /tgx/api`
+
+
+
 
 ## Build and deploy
 This can be locally deployed on your MiniPC, RaspberryPi or some server that support docker.
