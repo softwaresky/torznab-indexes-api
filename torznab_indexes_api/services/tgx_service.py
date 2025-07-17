@@ -53,29 +53,12 @@ class TGxService:
                 }
             )
 
-        page = 0
-        if search_schema.offset and search_schema.limit:
-            page = search_schema.offset // search_schema.limit
-
         items = []
-        search_query = search_schema.q
-
-        if not search_query:
-            if search_schema.imdbid and not search_schema.q:
-                # Search TV or Movies by imdbid
-                search_query = search_schema.imdbid
-
-            if search_schema.season and search_schema.season.isdigit():
-                search_query += f" s{int(search_schema.season):0>2d}"
-
-                if search_schema.ep and search_schema.ep.isdigit():
-                    search_query += f"e{int(search_schema.ep):0>2d}"
-
         async with TGxClient() as tgx_client:
             async for item_ in tgx_client.fetch_data(
-                    search_terms=search_query,
+                    search_terms=search_schema.search_terms(),
                     category_enum=search_schema.category,
-                    page=page,
+                    page=search_schema.page,
                     recursive=False
             ):
                 try:
