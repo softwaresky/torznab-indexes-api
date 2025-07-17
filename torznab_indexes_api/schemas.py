@@ -26,8 +26,8 @@ class CategoryEnum(StrEnum):
 
 # BaseModel
 class SearchSchema(BaseModel):
-    q: str | None = Field(default=None, description="Query string / search terms")
-    cat: str | None = Field(default=None)
+    q: str = Field(default="", description="Query string / search terms")
+    cat: str = Field(default="")
     attrs: list | None = Field(Query(default=None))
     offset: int | None = Field(default=None)
     limit: int | None = Field(default=None)
@@ -44,15 +44,36 @@ class SearchSchema(BaseModel):
     def category(self) -> CategoryEnum | None:
         return None
 
+    @property
+    def page(self) -> int:
+        if self.offset and self.limit:
+            return self.offset // self.limit
+        return 0
+
+    def search_terms(self) -> str:
+        return self.q.strip()
+
 
 class TvSearchSchema(SearchSchema):
     imdbid: str | None = Field(default=None)
-    season: str | None = Field(default=None)
-    ep: str | None = Field(default=None)
+    season: int | None = Field(default=None)
+    ep: int | None = Field(default=None)
 
     @property
     def category(self) -> CategoryEnum | None:
         return CategoryEnum("TV")
+
+    def search_terms(self) -> str:
+        parts = []
+        query = super().search_terms()
+        if not query and self.imdbid:
+            query = self.imdbid
+        parts.append(query)
+        if isinstance(self.season, int):
+            parts.append(f"s{self.season:0>2d}")
+        if isinstance(self.ep, int):
+            parts.append(f"e{self.ep:0>2d}")
+        return " ".join(parts)
 
 
 class MovieSearchSchema(SearchSchema):

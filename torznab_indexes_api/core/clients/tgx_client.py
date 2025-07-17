@@ -275,7 +275,7 @@ class TGxClient(Base):
                 yield item
 
             if recursive:
-                next_link = json_data.get("links", {}).get("next", "")
+                next_link = json_data.get("links", {}).get("next")
                 if next_link:
                     page += 1
                     async for item in self._fetch_data_json(url=url, page=page, recursive=recursive):
