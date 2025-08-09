@@ -16,10 +16,28 @@ This service can be running locally and integrate with **Sonnar**,  **Raddar** o
 This can be expanded with other torrent site that needs scraping.
 
 
-## Tutorials
+## Guide
 
 ### Integrate with Sonnar
-coming soon...
+
+Open Sonnar -> Settings -> Indexers -> Add Indexer - Torznab / Edit Indexer - Torznab
+
+Populate the fields with the following parameters:
+
+|Parameter|Value|
+|---|---|
+|Name|`TGx`|
+|URL|`http://192.168.x.x:9876/tgx`|
+|API Path| `/api`|
+
+
+<details>
+    <summary>Screenshot</summary>
+    
+<img width="1882" height="849" alt="2025-08-09 21_29_46-Indexer Settings - Sonarr-hide" src="https://github.com/user-attachments/assets/8310277f-74e1-467c-87b0-2a34d337f07d" />
+
+</details>
+
 
 ## Endpoints
 
@@ -132,13 +150,55 @@ coming soon...
 
 
 ## Build and deploy
-This can be locally deployed on your MiniPC, RaspberryPi or some server that support docker.
+This can be locally deployed on your MiniPC, RaspberryPi or some server that support docker. 
 
-1. Build docker images using this command
-   ```shell
-   docker build -t torznab-indexes-api .
-   ```
-2. Running docker container using host port 8899 this can change. The container port should be 8000.
-   ```shell
-   docker run --name torznab-indexes-api --port 8899:8000 torznab-indexes-api
-   ```
+Build docker images using this command
+```shell
+docker build -t torznab-indexes-api .
+```
+### docker cli
+Running docker container using host port 8899 this can change. The container port should be 8000.
+```shell
+docker run --name torznab-indexes-api --port 8899:8000 torznab-indexes-api
+```
+
+### docker-compose
+```YAML
+services:
+  torznab-indexes-api:
+    image: torznab-indexes-api
+    container_name: torznab-indexes-api
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Skopje
+    ports:
+      - 9876:8000
+    restart: unless-stopped
+```
+
+## API test
+Go to your browser and write the ip address on your local server some device sach as MiniPC, Raspberry Pi or something else. 
+Probably the ip address should be something like this `192.168.x.x:9876` the **x.x** depends on your router / local server and the **port**: `9876` that is the publish port from your docker. 
+
+torznab-indexes-api url [http://192.168.x.x:9876/docs](http://192.168.x.x:9876/docs) 
+
+<details>
+    <summary>Example</summary>
+    
+1. After opened that url this should be showing
+
+     <img width="1794" height="790" alt="2025-08-09 21_04_42-Torznab Indexes API - Swagger UI" src="https://github.com/user-attachments/assets/ccdee580-614a-42a2-b4d9-0d1ada212016" />
+
+2. If it is ok please try to search some tv shows or some movie
+
+     <img width="1809" height="805" alt="2025-08-09 21_20_00-Torznab Indexes API - Swagger UI" src="https://github.com/user-attachments/assets/d3dcae9a-0078-4f53-9caa-53832f646a5e" />
+
+3. The results should be like this
+
+     <img width="1832" height="861" alt="2025-08-09 21_06_38-hide" src="https://github.com/user-attachments/assets/7095cf7d-d08c-41b8-8b12-753957b69c7d" />
+</details>
+
+
+
+
