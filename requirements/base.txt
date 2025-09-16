@@ -8,3 +8,4 @@ beautifulsoup4==4.12.3
 pydantic-xml==2.13.1
 python-dateutil==2.9.0
 tenacity==9.0.0
+parse-torrent-title==2.8.1

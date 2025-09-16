@@ -308,16 +308,17 @@ class TGxClient(Base):
         url = f"get-posts/{':'.join(filters)}:format:json"
 
         async for item in self._fetch_data_json(url=url, page=page, recursive=recursive):
-            tasks.append(asyncio.create_task(self._get_post_details(**item)))
-            results.append(item)
-
-        items_details = await asyncio.gather(*tasks)
-
-        for item, item_detail in zip(results, items_details):
-            item.update({
-                key: item_detail[key]
-                for key in item_detail.keys() - item.keys()
-            })
             yield item
 
+        #     tasks.append(asyncio.create_task(self._get_post_details(**item)))
+        #     results.append(item)
+        #
+        # items_details = await asyncio.gather(*tasks)
+        #
+        # for item, item_detail in zip(results, items_details):
+        #     item.update({
+        #         key: item_detail[key]
+        #         for key in item_detail.keys() - item.keys()
+        #     })
+        #     yield item
 
