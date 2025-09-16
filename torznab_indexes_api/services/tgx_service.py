@@ -1,13 +1,13 @@
 import logging
 
-from collections import defaultdict
 from pydantic import ValidationError
 
 from torznab_indexes_api.core.exceptions import ServerErrorException
 from torznab_indexes_api.core.clients.tgx_client import TGxClient
 from torznab_indexes_api.schemas import (
     FunctionType, SearchSchema, MovieSearchSchema, TvSearchSchema, AllParamsSchemas,
-    TgxItemSchema, RssResultSchema, RssCapabilitiesSchema, BaseXmlModel, CategoryEnum
+    TgxItemSchema, RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr,
+    RssCapabilitiesSchema, BaseXmlModel, CategoryEnum
 )
 
 logger = logging.getLogger(__name__)
@@ -62,26 +62,59 @@ class TGxService:
                     recursive=False
             ):
                 try:
-                    item_schema = TgxItemSchema.model_validate(item_)
-                    items.append(item_schema.model_dump())
+                    tgx_item = TgxItemSchema.model_validate(item_)
+                    tv_attrs = []
+                    if season := tgx_item.title_parsed_data.get("season"):
+                        tv_attrs.append(
+                            NewznabTorznabAttr(name="season", value=str(season))
+                        )
+                    if episode := tgx_item.title_parsed_data.get("episode"):
+                        tv_attrs.append(
+                            NewznabTorznabAttr(name="episode", value=str(episode))
+                        )
+                    items.append(NewznabItem(
+                        title=tgx_item.name,
+                        guid=NewznabGuid(
+                            title=tgx_item.torrent_url
+                        ),
+                        link=tgx_item.download_url,
+                        comments=tgx_item.torrent_url,
+                        pubDate=tgx_item.added.strftime("%a, %d %b %Y %H:%M:%S %z"),
+                        description=f"Uploader: {tgx_item.uploader}",
+                        category=tgx_item.category,
+                        enclosure=NewznabEnclosure(
+                            url=tgx_item.download_url,
+                            type="application/x-bittorrent"
+                        ),
+                        attrs=[
+                            NewznabTorznabAttr(name="size", value=str(tgx_item.size)),
+                            NewznabTorznabAttr(name="infohash", value=tgx_item.hash),
+                            NewznabTorznabAttr(name="guid", value=tgx_item.hash),
+                            NewznabTorznabAttr(name="seeders", value=str(tgx_item.seeders)),
+                            NewznabTorznabAttr(name="peers", value=str(tgx_item.leechers)),
+                            NewznabTorznabAttr(name="leechers", value=str(tgx_item.leechers)),
+                            NewznabTorznabAttr(name="category", value="5000"), # Hardcoded for now
+                            NewznabTorznabAttr(name="language", value=tgx_item.language),
+                            NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
+                            NewznabTorznabAttr(name="uploadvolumefactor", value="1"),
+                            NewznabTorznabAttr(name="uploader", value=tgx_item.uploader),
+                            NewznabTorznabAttr(name="tags", value=",".join(tgx_item.tags)),
+                        ] + tv_attrs
+                    ))
                 except ValidationError as err:
                     logger.error("Failed validation on `%s`. Data: `%s`",
                                  TgxItemSchema.__class__.__name__,
-                                 err.json()
+                                 err.json(include_url=False)
                                  )
 
         logger.info("Found `%d` torrents", len(items))
-        result = RssResultSchema(
-            **{
-                "channel": {
-                    "atom_link": {
-                        "href": "http://localhost"
-                    },
-                    "language": "en-US",
-                    "link": TGxClient.base_url,
-                    "items": items
-                }
-            }
+        result = RssResult(
+            channel=NewznabChannel(
+                title="TGx",
+                description="Torrent Galaxy site",
+                link=TGxClient.base_url,
+                item=items
+            )
         )
         return self._response(result)
 
