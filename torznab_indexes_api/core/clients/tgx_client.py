@@ -1,9 +1,8 @@
-import asyncio
 import logging
 import json
 
 from urllib.parse import urljoin
-from enum import Enum, StrEnum
+from enum import Enum
 from typing import AsyncGenerator
 from functools import lru_cache
 
@@ -322,3 +321,9 @@ class TGxClient(Base):
         #     })
         #     yield item
 
+    def get_torrent_url(self, pk: str, title: str):
+        return urljoin(self.base_url, f"post-detail/{pk}/{to_kebab(title)}/")
+
+    @staticmethod
+    def get_download_url(info_hash: str, title: str) -> str:
+     return f"http://itorrents.org/torrent/{info_hash}?title={title}"

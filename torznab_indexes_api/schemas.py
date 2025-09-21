@@ -250,13 +250,37 @@ class TgxItemSchema(BaseModel):
 
         return v
 
-    @computed_field
-    @property
-    def torrent_url(self) -> str:
-        return f"https://torrentgalaxy.one/post-detail/{self.primary_key}/{to_kebab(self.name)}/"
+    # @computed_field
+    # @property
+    # def torrent_url(self) -> str:
+    #     return f"https://torrentgalaxy.one/post-detail/{self.primary_key}/{to_kebab(self.name)}/"
+    #
+    #
+    # @computed_field
+    # @property
+    # def download_url(self) -> str:
+    #     return f"http://itorrents.org/torrent/{self.hash}?title={self.name}"
 
 
-    @computed_field
-    @property
-    def download_url(self) -> str:
-        return f"http://itorrents.org/torrent/{self.hash}?title={self.name}"
+    def get_magnet_link(self, trackers: list[str] | None = None):
+        """
+        Generate a magnet link from a torrent infohash.
+
+        Args:
+            infohash (str): 40-character hex infohash
+            name (str): Optional display name of the torrent
+            trackers (list): Optional list of tracker URLs
+
+        Returns:
+            str: A complete magnet link
+        """
+        base = f"magnet:?xt=urn:btih:{self.hash}"
+
+        if self.name:
+            base += f"&dn={self.name.replace(' ', '+')}"  # Replace spaces for URL
+
+        if trackers:
+            for tracker in trackers:
+                base += f"&tr={tracker}"
+
+        return base
