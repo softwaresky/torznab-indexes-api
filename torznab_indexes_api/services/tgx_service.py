@@ -62,7 +62,13 @@ class TGxService:
                     recursive=False
             ):
                 try:
+
                     tgx_item = TgxItemSchema.model_validate(item_)
+                    torrent_url = tgx_client.get_torrent_url(pk=tgx_item.primary_key, title=tgx_item.name)
+                    # download_url = tgx_client.get_download_url(info_hash=tgx_item.hash, title=tgx_item.name)
+                    magnet_link = tgx_item.get_magnet_link(
+                        trackers=[tgx_client.base_url, "http://itorrents.org"]
+                    )
                     tv_attrs = []
                     if season := tgx_item.title_parsed_data.get("season"):
                         tv_attrs.append(
@@ -75,15 +81,15 @@ class TGxService:
                     items.append(NewznabItem(
                         title=tgx_item.name,
                         guid=NewznabGuid(
-                            title=tgx_item.torrent_url
+                            title=torrent_url
                         ),
-                        link=tgx_item.download_url,
-                        comments=tgx_item.torrent_url,
+                        link=magnet_link,
+                        comments=torrent_url,
                         pubDate=tgx_item.added.strftime("%a, %d %b %Y %H:%M:%S %z"),
                         description=f"Uploader: {tgx_item.uploader}",
                         category=tgx_item.category,
                         enclosure=NewznabEnclosure(
-                            url=tgx_item.download_url,
+                            url=magnet_link,
                             type="application/x-bittorrent"
                         ),
                         attrs=[
