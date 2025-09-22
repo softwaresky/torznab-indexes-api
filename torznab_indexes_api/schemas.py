@@ -83,7 +83,7 @@ class MovieSearchSchema(SearchSchema):
 
     @property
     def category(self) -> CategoryEnum | None:
-        return CategoryEnum("Movie")
+        return CategoryEnum("Movies")
 
 
 class FunctionType(Enum):
