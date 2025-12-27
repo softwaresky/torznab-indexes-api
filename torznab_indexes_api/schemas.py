@@ -5,14 +5,14 @@ from functools import cached_property
 from enum import Enum, StrEnum
 
 from pydantic import (
-    BaseModel, model_validator, field_validator, Field, create_model, computed_field, ConfigDict
+    BaseModel, field_validator, Field, create_model, ConfigDict
 )
 from pydantic_xml import BaseXmlModel, element, attr
 import PTN
 
 from fastapi import Query
 
-from torznab_indexes_api.core.utils import get_past_date, to_kebab
+from torznab_indexes_api.core.utils import get_past_date
 
 
 STANDARD_NAMESPACE_MAP = {
@@ -25,25 +25,29 @@ class CategoryEnum(StrEnum):
     MOVIES = "Movies"
 
 
+class FunctionType(Enum):
+    caps = "caps"
+    search = "search"
+    tvsearch = "tvsearch"
+    movie = "movie"
+
+
 # BaseModel
 class SearchSchema(BaseModel):
-    q: str = Field(default="", description="Query string / search terms")
+    query: str = Field(default="", description="Query string / search terms", alias="q")
     cat: str = Field(default="")
     attrs: list | None = Field(Query(default=None))
     offset: int | None = Field(default=None)
     limit: int | None = Field(default=None)
 
-    @model_validator(mode="before")
-    def _model_validator(cls, values: dict):
-        diff = values.keys() - cls.model_fields.keys()
-        if diff:
-            raise ValueError(f"Invalid keys: {list(diff)}")
+    # @model_validator(mode="before")
+    # def _model_validator(cls, values: dict):
+    #     diff = values.keys() - cls.model_fields.keys()
+    #     if diff:
+    #         raise ValueError(f"Invalid keys: {list(diff)}")
+    #
+    #     return values
 
-        return values
-
-    @property
-    def category(self) -> CategoryEnum | None:
-        return None
 
     @property
     def page(self) -> int:
@@ -51,46 +55,26 @@ class SearchSchema(BaseModel):
             return self.offset // self.limit
         return 0
 
-    def search_terms(self) -> str:
-        return self.q.strip()
-
-
-class TvSearchSchema(SearchSchema):
+class ImdbSearchSchema(SearchSchema):
     imdbid: str | None = None
+
+    @field_validator("imdbid", mode="before")
+    @classmethod
+    def imdbid_validator(cls, value: str) -> str:
+        if not value.startswith("tt") and value.isdigit():
+            return f"tt{value}"
+        return value
+
+
+class TvSearchSchema(ImdbSearchSchema):
     season: int | None = None
-    ep: int | None = None
-
-    @property
-    def category(self) -> CategoryEnum | None:
-        return CategoryEnum("TV")
-
-    def search_terms(self) -> str:
-        parts = []
-        query = super().search_terms()
-        if not query and self.imdbid:
-            query = self.imdbid
-        parts.append(query)
-        if isinstance(self.season, int):
-            parts.append(f"s{self.season:0>2d}")
-        if isinstance(self.ep, int):
-            parts.append(f"e{self.ep:0>2d}")
-        return " ".join(parts)
+    episode: int | None = Field(default=None, alias="ep")
 
 
-class MovieSearchSchema(SearchSchema):
-    imdbid: str | None = Field(default=None)
-    genre: str | None = Field(default=None)
-
-    @property
-    def category(self) -> CategoryEnum | None:
-        return CategoryEnum("Movies")
+class MovieSearchSchema(ImdbSearchSchema):
+    genre: str | None = None
 
 
-class FunctionType(Enum):
-    caps = "caps"
-    search = "search"
-    tvsearch = "tvsearch"
-    movie = "movie"
 
 
 def merge_models(name: str, *models: Iterable[BaseModel]) -> BaseModel:
@@ -104,8 +88,7 @@ def merge_models(name: str, *models: Iterable[BaseModel]) -> BaseModel:
 class AllParamsSchemas(merge_models(
     "AllParams",
     SearchSchema, TvSearchSchema, MovieSearchSchema)):
-    q: str | None = Field(default=None, description="Query string / search terms")
-
+    pass
 
 class NewznabEnclosure(BaseXmlModel, tag="enclosure"):
     url: str = attr()
@@ -284,3 +267,56 @@ class TgxItemSchema(BaseModel):
                 base += f"&tr={tracker}"
 
         return base
+
+
+## Torrents Client Schemas
+
+class BaseRequestSchema(BaseModel):
+    search_params: TvSearchSchema | MovieSearchSchema | SearchSchema | None = Field(default=None, union_mode="left_to_right")
+
+    def search_terms(self) -> str:
+        raise NotImplementedError()
+
+
+class TGxRequestSchema(BaseRequestSchema):
+
+    """Torrent Galaxy Request structure
+    """
+
+    def search_terms(self) -> str:
+        filters = []
+        if not self.search_params:
+            return ""
+
+        query = self.search_params.query.strip()
+        query_parts = query.split()
+        imdb_id: str | None = None
+        category: str | None = None
+
+
+        match self.search_params:
+            case MovieSearchSchema():
+                category = "Movies"
+                imdb_id = self.search_params.imdbid
+            case TvSearchSchema():
+                category = "TV"
+                imdb_id = self.search_params.imdbid
+                if isinstance(self.search_params.season, int):
+                    season_str = f"s{self.search_params.season:0>2d}"
+                    if season_str not in query_parts:
+                        query += f" {season_str}"
+                if isinstance(self.search_params.episode, int):
+                    eps_str = f"e{self.search_params.episode:0>2d}"
+                    if eps_str not in query_parts:
+                        query += f" {eps_str}"
+
+        keywords = imdb_id or query
+
+        if keywords:
+            filters.append(f"keywords:{keywords}")
+
+        if not imdb_id and category:
+            filters.append(f"category:{category}")
+
+        return ":".join(filters)
+

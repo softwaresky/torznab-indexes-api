@@ -285,26 +285,12 @@ class TGxClient(Base):
             return {}
         return await self.parse_torrent_data(torrent_url=f"post-detail/{pk}/{to_kebab(n)}/")
 
-
-    async def fetch_data(
-            self,
-            search_terms: str,
-            category_enum: CategoryEnum | None = None,
-            page: int = 0,
-            recursive: bool = False
-    ) -> AsyncGenerator:
+    async def fetch_data(self, search_terms: str, page: int = 0, recursive: bool = False) -> AsyncGenerator:
 
         results = []
         tasks = []
 
-        filters = []
-        if search_terms:
-            filters.append(f"keywords:{search_terms}")
-
-        if category_enum:
-            filters.append(f"category:{category_enum.value}")
-
-        url = f"get-posts/{':'.join(filters)}:format:json"
+        url = f"get-posts/{search_terms}:format:json"
 
         async for item in self._fetch_data_json(url=url, page=page, recursive=recursive):
             yield item
@@ -326,4 +312,4 @@ class TGxClient(Base):
 
     @staticmethod
     def get_download_url(info_hash: str, title: str) -> str:
-     return f"http://itorrents.org/torrent/{info_hash}?title={title}"
+        return f"http://itorrents.org/torrent/{info_hash}?title={title}"
