@@ -8,10 +8,11 @@ from functools import lru_cache
 
 from httpx import TimeoutException as HttpxTimeoutError
 from bs4 import BeautifulSoup, Tag
+from pydantic import ValidationError
 
-from torznab_indexes_api.core.clients.base import Base
+from torznab_indexes_api.core.clients.base_client import BaseClient
 from torznab_indexes_api.core.utils import to_kebab
-from torznab_indexes_api.schemas import CategoryEnum
+from torznab_indexes_api.schemas.tgx_schemas import TgxItemSchema, TGxRequestSchema
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class OptionType(Enum):
     keywords = "keywords"
 
 
-class TGxClientOld(Base):
+class TGxClientOld(BaseClient):
     name = "tgx"
     base_url = "https://torrentgalaxy.one"
 
@@ -214,7 +215,7 @@ class TGxClientOld(Base):
                                 yield data
 
 
-class TGxClient(Base):
+class TGxClient(BaseClient):
     name = "tgx"
     base_url = "https://torrentgalaxy.one"
 
@@ -285,15 +286,30 @@ class TGxClient(Base):
             return {}
         return await self.parse_torrent_data(torrent_url=f"post-detail/{pk}/{to_kebab(n)}/")
 
-    async def fetch_data(self, search_terms: str, page: int = 0, recursive: bool = False) -> AsyncGenerator:
+    async def fetch_data(self, request_schema: TGxRequestSchema) -> AsyncGenerator[TgxItemSchema, None]:
 
         results = []
         tasks = []
+        params = {
+            "page": request_schema.search_params.page,
+        }
+        url = f"get-posts/{request_schema.search_terms()}:format:json"
+        response_str = await self._request(method="GET", url=url, params=params)
+        try:
+            response_data: dict = json.loads(response_str)
+        except json.JSONDecodeError:
+            raise Exception("No json structure")
 
-        url = f"get-posts/{search_terms}:format:json"
+        for item in response_data.get("results", []):
+            try:
+                yield TgxItemSchema.model_validate(item)
+            except ValidationError as err:
+                logger.error("Failed validation on `%s`. Data: `%s`",
+                             TgxItemSchema.__class__.__name__,
+                             err.json(include_url=False)
+                             )
 
-        async for item in self._fetch_data_json(url=url, page=page, recursive=recursive):
-            yield item
+
 
         #     tasks.append(asyncio.create_task(self._get_post_details(**item)))
         #     results.append(item)

@@ -1,21 +1,20 @@
 from fastapi import APIRouter, Depends, Response, Query
-from torznab_indexes_api.schemas.tgx_schemas import AllParamsSchemas, TGxRequestSchema, FunctionType
+from torznab_indexes_api.schemas.yts_schemas import YTSRequestSchema, AllParamsSchemas, FunctionType
 from torznab_indexes_api.core.exceptions import RequestErrorException
-from torznab_indexes_api.services.tgx_service import TGxService
+from torznab_indexes_api.services.yts_service import YTSService
 
 from torznab_indexes_api.routers.base_router import BaseRouter
 
 
-class TGxRouter(BaseRouter):
-    request_schema = TGxRequestSchema()
+class YTSRouter(BaseRouter):
+    request_schema = YTSRequestSchema()
     params = AllParamsSchemas
     function_type = FunctionType
-    service = TGxService()
+    service = YTSService()
 
-router = TGxRouter().router
+router = YTSRouter().router
 
 # router = APIRouter()
-#
 #
 # @router.get("/api")
 # async def search(
@@ -23,15 +22,14 @@ router = TGxRouter().router
 #         function_type: FunctionType = Query(default=FunctionType.search, alias="t"),
 #         search_params: AllParamsSchemas = Depends(),
 # ):
-#
-#     tgx_service = TGxService()
+#     yts_service = YTSService()
 #     if function_type == FunctionType.caps:
-#         data = await tgx_service.get_capabilities()
+#         data = await yts_service.get_capabilities()
 #     elif function_type in list(FunctionType):
-#         request_schema = TGxRequestSchema.model_validate({
+#         request_schema = YTSRequestSchema.model_validate({
 #             "search_params": search_params.model_dump(exclude_none=True, exclude_unset=True, by_alias=True),
 #         })
-#         data = await tgx_service.search(request_schema=request_schema)
+#         data = await yts_service.search(request_schema=request_schema)
 #     else:
 #         raise RequestErrorException(
 #             context={"message": f"Unsupported function `{function_type}`."},

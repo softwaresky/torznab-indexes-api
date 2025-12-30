@@ -16,7 +16,7 @@ from httpx import AsyncClient, Response, HTTPError, TimeoutException, ConnectErr
 logger = logging.getLogger(__name__)
 
 
-class Base:
+class BaseClient:
     name: str
     base_url: str
 
