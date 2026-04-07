@@ -3,7 +3,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-def parse_size(size: str):
+def parse_size(size: str) -> int:
     units = {"B": 1, "KB": 2**10, "MB": 2**20, "GB": 2**30, "TB": 2**40}
     unit = "".join(p for p in size if p.isalpha())
     number = size.replace(unit, "")
