@@ -9,6 +9,8 @@ from torznab_indexes_api.core.utils import parse_size
 class FunctionType(str, Enum):
     caps = "caps"
     search = "search"
+    tvsearch = "tvsearch"
+    movie = "movie"
 
 
 class AllParamsSchemas(merge_models(
@@ -16,9 +18,26 @@ class AllParamsSchemas(merge_models(
     SearchSchema)):
     pass
 
+
+def scale_value(value: int) -> int:
+    max_internal = 50  # Torznab default
+    max_external = 20  # RarBg
+
+    scaled = int(value * max_external / max_internal)
+    return max(1, scaled)
+
+
+class RarbgSearchSchema(SearchSchema):
+
+    @field_validator("limit", "offset", mode="before")
+    def validate_offset(cls, value: int) -> int:
+        return scale_value(value)
+
+
+
 class RarbgRequestSchema(BaseRequestSchema):
 
-    search_params: SearchSchema | None = Field(default=None)
+    search_params: RarbgSearchSchema | None = Field(default=None)
 
     def search_terms(self):
         return self.search_params.query
@@ -44,9 +63,7 @@ class RarbgItemSchema(BaseModel):
 
     @field_validator("categories", mode="before")
     def categories_before(cls, value: str) -> list:
-        return [
-            item.strip() for item in value.split("/")
-        ]
+        return [ item.strip() for item in value.split("/") ]
 
     @property
     def size_bytes(self) -> int:

@@ -18,6 +18,8 @@ class RarbgClient(BaseClient):
         soup = BeautifulSoup(response_str, "html.parser")
 
         table = soup.find("table", class_="lista2t")
+        if table is None:
+            return []
 
         header_row = table.find("tr")
         headers = []
