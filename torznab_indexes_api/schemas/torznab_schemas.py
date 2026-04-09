@@ -27,7 +27,7 @@ class FunctionType(str, Enum):
 
 # BaseModel
 class SearchSchema(BaseModel):
-    query: str = Field(default="", description="Query string / search terms", alias="q")
+    query: str = Field(default="top 10", description="Query string / search terms", alias="q")
     cat: str = Field(default="")
     attrs: list | None = Field(Query(default=None))
     offset: int | None = Field(default=0, ge=0)
