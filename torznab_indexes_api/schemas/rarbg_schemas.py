@@ -52,10 +52,8 @@ class RarbgItemSchema(BaseModel):
     magnet_link: str | None = None
     tags: list[str] = Field(default=[], alias="tags")
     language: str | None = None
-    size: int | None = None
     categories: list = Field(alias="category")
     added: EnsureDateTime
-    size_bytes: int
     size: str
     seeds: int = Field(alias="s")
     leechers: int = Field(alias="l")
