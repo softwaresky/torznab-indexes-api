@@ -47,7 +47,7 @@ class RarbgRequestSchema(BaseRequestSchema):
 class RarbgItemSchema(BaseModel):
     cat: str = Field(alias="cat")
     file: str
-    release_name: str | None
+    release_name: str | None = None
     file_link: str
     magnet_link: str | None = None
     tags: list[str] = Field(default=[], alias="tags")
