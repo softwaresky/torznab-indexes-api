@@ -78,7 +78,6 @@ class RarbgClient(BaseClient):
 
         data = {}
         magnet_tag = soup.find("a", href=lambda x: x and x.startswith("magnet:"))
-
         if magnet_tag:
             data["magnet_link"] = magnet_tag["href"]
 
@@ -118,6 +117,9 @@ class RarbgClient(BaseClient):
             self.torrent_detail(detail_url=item["file_link"]) for item in items
         ])
         for item, torrent_detail in zip(items, torrents_detail):
+            if not torrent_detail:
+                logger.warning("No torrent data found for %s", item["file_link"])
+                continue
             try:
                 yield RarbgItemSchema.model_validate(item | torrent_detail)
             except ValidationError as err:
