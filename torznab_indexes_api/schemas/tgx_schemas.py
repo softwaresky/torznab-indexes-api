@@ -1,19 +1,14 @@
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Annotated
 
 from dateutil import parser, tz
-from functools import cached_property
 
-from pydantic import (
-    BaseModel, field_validator, Field
-)
+from pydantic import BaseModel, field_validator, Field, computed_field
 
-import PTN
 
 from torznab_indexes_api.core.utils import get_past_date
 from torznab_indexes_api.schemas import merge_models
-from torznab_indexes_api.schemas.torznab_schemas import TvSearchSchema, MovieSearchSchema, SearchSchema
+from torznab_indexes_api.schemas.torznab_schemas import TvSearchSchema, MovieSearchSchema, SearchSchema, BaseTorrentItemSchema
 
 
 class FunctionType(str, Enum):
@@ -30,12 +25,9 @@ class AllParamsSchemas(merge_models(
 
 
 class TGxRequestSchema(BaseModel):
-    """Torrent Galaxy Request structure
-    """
+    """Torrent Galaxy Request structure"""
 
-    search_params: TvSearchSchema | MovieSearchSchema | SearchSchema | None = Field(
-        default=None, union_mode="left_to_right"
-    )
+    search_params: TvSearchSchema | MovieSearchSchema | SearchSchema | None = Field(default=None, union_mode="left_to_right")
 
     def search_terms(self) -> str:
         filters = []
@@ -74,7 +66,7 @@ class TGxRequestSchema(BaseModel):
         return ":".join(filters)
 
 
-class TgxItemSchema(BaseModel):
+class TgxItemSchema(BaseTorrentItemSchema):
     primary_key: str = Field(default="", alias="pk")
     category: str = Field(default="", alias="c")
     verified: str = Field(default="", alias="checked by")
@@ -92,9 +84,9 @@ class TgxItemSchema(BaseModel):
     hash: str = Field(default="", alias="h")
     tags: list[str] = Field(default=[], alias="tg")
 
-    @cached_property
-    def title_parsed_data(self) -> dict:
-        return PTN.parse(self.name)
+    @property
+    def ptn_name(self) -> str:
+        return self.name
 
     @field_validator("verified", mode="before")
     def verified_validator(cls, v) -> str:

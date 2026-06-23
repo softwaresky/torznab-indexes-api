@@ -1,10 +1,10 @@
 from enum import Enum
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 from torznab_indexes_api.core.types import EnsureDateTime
 from torznab_indexes_api.schemas import merge_models
-from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, MovieSearchSchema, BaseRequestSchema
+from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, MovieSearchSchema, BaseRequestSchema, BaseTorrentItemSchema
 
 class FunctionType(str, Enum):
     caps = "caps"
@@ -19,9 +19,7 @@ class AllParamsSchemas(merge_models(
 
 
 class YTSRequestSchema(BaseRequestSchema):
-    search_params: MovieSearchSchema | SearchSchema |  None = Field(
-        default=None, union_mode="left_to_right"
-    )
+    search_params: MovieSearchSchema | SearchSchema |  None = Field(default=None, union_mode="left_to_right")
 
     def search_terms(self) -> str:
         query: str | None = getattr(self.search_params, "query", "")
@@ -86,7 +84,7 @@ class YTSResponseTorrentSchema(BaseModel):
         return self.seeds - self.peers
 
 
-class YTSResponseMovieSchema(BaseModel):
+class YTSResponseMovieSchema(BaseTorrentItemSchema):
     id: int
     url: str
     imdb_code: str
@@ -113,3 +111,7 @@ class YTSResponseMovieSchema(BaseModel):
     torrents: list[YTSResponseTorrentSchema]
     date_uploaded: EnsureDateTime | None = None
     date_uploaded_unix: int | None = None
+
+    @property
+    def ptn_name(self) -> str:
+        raise self.title

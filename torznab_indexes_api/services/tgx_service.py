@@ -22,17 +22,19 @@ class TGxService(BaseService):
         items = []
         async with TGxClient() as tgx_client:
             async for tgx_item in tgx_client.fetch_data(request_schema=request_schema):
+                if not tgx_item.ptn_validate(request_schema=request_schema):
+                    continue
                 torrent_url = tgx_client.get_torrent_url(pk=tgx_item.primary_key, title=tgx_item.name)
                 # download_url = tgx_client.get_download_url(info_hash=tgx_item.hash, title=tgx_item.name)
                 magnet_link = tgx_item.get_magnet_link(
                     trackers=[tgx_client.base_url, "http://itorrents.org"]
                 )
                 tv_attrs = []
-                if season := tgx_item.title_parsed_data.get("season"):
+                if season := tgx_item.ptn_data.season:
                     tv_attrs.append(
                         NewznabTorznabAttr(name="season", value=str(season))
                     )
-                if episode := tgx_item.title_parsed_data.get("episode"):
+                if episode := tgx_item.ptn_data.episode:
                     tv_attrs.append(
                         NewznabTorznabAttr(name="episode", value=str(episode))
                     )

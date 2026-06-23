@@ -22,7 +22,20 @@ class YTSService(BaseService):
             async for movie in yts_client.list_movies(request_schema=request_yts_client):
 
                 for torrent in movie.torrents:
+                    if not torrent.ptn_validate(request_schema=request_schema):
+                        continue
+
                     # download_url = tgx_client.get_download_url(info_hash=tgx_item.hash, title=tgx_item.name)
+                    tv_attrs = []
+                    if season := torrent.ptn_data.season:
+                        tv_attrs.append(
+                            NewznabTorznabAttr(name="season", value=str(season))
+                        )
+                    if episode := torrent.ptn_data.episode:
+                        tv_attrs.append(
+                            NewznabTorznabAttr(name="episode", value=str(episode))
+                        )
+
                     magnet_link = torrent.url
                     items.append(NewznabItem(
                         title=f"{movie.title_long} {torrent.quality} {torrent.type} {torrent.audio_channels} {torrent.bit_depth}Bit {torrent.video_codec}",
@@ -59,7 +72,7 @@ class YTSService(BaseService):
                             NewznabTorznabAttr(name="tag", value=torrent.is_repack),
                             NewznabTorznabAttr(name="tag", value=torrent.video_codec),
                             NewznabTorznabAttr(name="tag", value=torrent.audio_channels),
-                        ]
+                        ] + tv_attrs
                     ))
 
         logger.info("Found `%d` torrents", len(items))
