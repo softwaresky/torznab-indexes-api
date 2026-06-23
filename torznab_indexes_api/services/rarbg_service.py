@@ -19,7 +19,18 @@ class RarbgService(BaseService):
         items = []
         async with RarbgClient() as client:
             async for rarbg_item in client.fetch_data(request_schema=request_schema):
+                if not rarbg_item.ptn_validate(request_schema=request_schema):
+                    continue
                 torrent_url = urljoin(client.base_url, rarbg_item.file_link)
+                tv_attrs = []
+                if season := rarbg_item.ptn_data.season:
+                    tv_attrs.append(
+                        NewznabTorznabAttr(name="season", value=str(season))
+                    )
+                if episode := rarbg_item.ptn_data.episode:
+                    tv_attrs.append(
+                        NewznabTorznabAttr(name="episode", value=str(episode))
+                    )
                 items.append(NewznabItem(
                     title=f"{rarbg_item.release_name or rarbg_item.file}",
                     guid=NewznabGuid(
@@ -56,7 +67,7 @@ class RarbgService(BaseService):
                         # NewznabTorznabAttr(name="tag", value=torrent.is_repack),
                         # NewznabTorznabAttr(name="tag", value=torrent.video_codec),
                         # NewznabTorznabAttr(name="tag", value=torrent.audio_channels),
-                    ]
+                    ] + tv_attrs
                 ))
 
         logger.info("Found `%d` torrents", len(items))

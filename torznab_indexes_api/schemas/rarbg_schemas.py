@@ -1,8 +1,9 @@
 from enum import Enum
+import PTN
 
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, field_validator, Field, computed_field
 from torznab_indexes_api.schemas import merge_models
-from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, BaseRequestSchema
+from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, BaseRequestSchema, TvSearchSchema, MovieSearchSchema, BaseTorrentItemSchema
 from torznab_indexes_api.core.types import EnsureDateTime
 from torznab_indexes_api.core.utils import parse_size
 
@@ -13,38 +14,27 @@ class FunctionType(str, Enum):
     movie = "movie"
 
 
+class RarbgSearchSchema(SearchSchema):
+    MAX_EXTERNAL = 50
+    MAX_INTERNAL = 20
+
+
 class AllParamsSchemas(merge_models(
     "AllParams",
-    SearchSchema)):
+    RarbgSearchSchema, TvSearchSchema, MovieSearchSchema)):
     pass
-
-
-def scale_value(value: int) -> int:
-    max_internal = 50  # Torznab default
-    max_external = 20  # RarBg
-
-    scaled = int(value * max_external / max_internal)
-    return max(1, scaled)
-
-
-class RarbgSearchSchema(SearchSchema):
-
-    @field_validator("limit", "offset", mode="before")
-    def validate_offset(cls, value: int) -> int:
-        return scale_value(value)
-
 
 
 class RarbgRequestSchema(BaseRequestSchema):
 
-    search_params: RarbgSearchSchema | None = Field(default=None)
+    search_params: TvSearchSchema | MovieSearchSchema | RarbgSearchSchema | None = Field(default=None, union_mode="left_to_right")
 
     def search_terms(self):
         return self.search_params.query
 
 
 
-class RarbgItemSchema(BaseModel):
+class RarbgItemSchema(BaseTorrentItemSchema):
     cat: str = Field(alias="cat")
     file: str
     release_name: str | None
@@ -58,6 +48,10 @@ class RarbgItemSchema(BaseModel):
     seeds: int = Field(alias="s")
     leechers: int = Field(alias="l")
     uploader: str
+
+    @property
+    def ptn_name(self) -> str:
+        return self.release_name or self.file
 
     @field_validator("categories", mode="before")
     def categories_before(cls, value: str) -> list:
