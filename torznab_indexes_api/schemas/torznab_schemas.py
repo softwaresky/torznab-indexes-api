@@ -116,6 +116,10 @@ class BaseTorrentItemSchema(BaseModel):
 
 
     @property
+    def category_id(self) -> int:
+        raise NotImplementedError()
+
+    @property
     def ptn_name(self) -> str:
         raise NotImplementedError()
 

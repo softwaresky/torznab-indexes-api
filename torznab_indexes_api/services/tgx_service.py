@@ -1,12 +1,9 @@
 import logging
-from typing import Type
 from torznab_indexes_api.core.clients.tgx_client import TGxClient
 from torznab_indexes_api.schemas.torznab_schemas import (
     RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr
 )
-from torznab_indexes_api.schemas.tgx_schemas import (
-    TGxRequestSchema, TgxItemSchema, AllParamsSchemas, FunctionType
-)
+from torznab_indexes_api.schemas.tgx_schemas import TGxRequestSchema
 from torznab_indexes_api.services.base_service import BaseService
 
 logger = logging.getLogger(__name__)
@@ -47,7 +44,7 @@ class TGxService(BaseService):
                     comments=torrent_url,
                     pubDate=tgx_item.added.strftime("%a, %d %b %Y %H:%M:%S %z"),
                     description=f"Uploader: {tgx_item.uploader}",
-                    category=tgx_item.category,
+                    category=f"{tgx_item.category_id}",
                     enclosure=NewznabEnclosure(
                         url=magnet_link,
                         type="application/x-bittorrent"
@@ -58,7 +55,7 @@ class TGxService(BaseService):
                               NewznabTorznabAttr(name="guid", value=tgx_item.hash),
                               NewznabTorznabAttr(name="seeders", value=str(tgx_item.seeders)),
                               NewznabTorznabAttr(name="leechers", value=str(tgx_item.leechers)),
-                              NewznabTorznabAttr(name="category", value="5000"),  # Hardcoded for now
+                              NewznabTorznabAttr(name="category", value=f"{tgx_item.category_id}"),
                               NewznabTorznabAttr(name="language", value=tgx_item.language),
                               NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
                               NewznabTorznabAttr(name="uploadvolumefactor", value="1"),

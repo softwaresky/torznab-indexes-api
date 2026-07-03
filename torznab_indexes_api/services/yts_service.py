@@ -46,7 +46,7 @@ class YTSService(BaseService):
                         comments=torrent.url,
                         pubDate=torrent.date_uploaded.strftime("%a, %d %b %Y %H:%M:%S %z"),
                         description=movie.description_full,
-                        category="Movies",
+                        category=f"{torrent.category_id}",
                         enclosure=NewznabEnclosure(
                             url=magnet_link,
                             type="application/x-bittorrent"
@@ -58,7 +58,7 @@ class YTSService(BaseService):
                             NewznabTorznabAttr(name="seeders", value=str(torrent.seeds)),
                             NewznabTorznabAttr(name="peers", value=str(torrent.peers)),
                             NewznabTorznabAttr(name="leechers", value=str(torrent.leechers)),
-                            NewznabTorznabAttr(name="category", value="5000"),  # Hardcoded for now
+                            NewznabTorznabAttr(name="category", value=f"{torrent.category_id}"),
                             NewznabTorznabAttr(name="language", value=movie.language),
                             NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
                             NewznabTorznabAttr(name="uploadvolumefactor", value="1"),

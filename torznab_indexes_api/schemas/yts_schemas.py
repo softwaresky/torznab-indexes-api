@@ -83,6 +83,10 @@ class YTSResponseTorrentSchema(BaseModel):
     def leechers(self) -> int:
         return self.seeds - self.peers
 
+    @property
+    def category_id(self) -> int:
+        return 2000
+
 
 class YTSResponseMovieSchema(BaseTorrentItemSchema):
     id: int

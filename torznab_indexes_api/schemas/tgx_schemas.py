@@ -3,10 +3,8 @@ from enum import Enum
 
 from dateutil import parser, tz
 
-from pydantic import BaseModel, field_validator, Field, computed_field
-
-
-from torznab_indexes_api.core.utils import get_past_date
+from pydantic import BaseModel, field_validator, Field
+from torznab_indexes_api.core.utils import get_past_date, get_category
 from torznab_indexes_api.schemas import merge_models
 from torznab_indexes_api.schemas.torznab_schemas import TvSearchSchema, MovieSearchSchema, SearchSchema, BaseTorrentItemSchema
 
@@ -139,3 +137,7 @@ class TgxItemSchema(BaseTorrentItemSchema):
                 base += f"&tr={tracker}"
 
         return base
+
+    @property
+    def category_id(self) -> int:
+        return get_category([self.category])

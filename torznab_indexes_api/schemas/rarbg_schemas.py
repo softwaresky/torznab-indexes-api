@@ -1,7 +1,7 @@
 from enum import Enum
-import PTN
 
-from pydantic import BaseModel, field_validator, Field, computed_field
+from pydantic import field_validator, Field
+from torznab_indexes_api.core.utils import get_category
 from torznab_indexes_api.schemas import merge_models
 from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, BaseRequestSchema, TvSearchSchema, MovieSearchSchema, BaseTorrentItemSchema
 from torznab_indexes_api.core.types import EnsureDateTime
@@ -60,3 +60,7 @@ class RarbgItemSchema(BaseTorrentItemSchema):
     @property
     def size_bytes(self) -> int:
         return parse_size(self.size)
+
+    @property
+    def category_id(self) -> int:
+        return get_category(self.categories)

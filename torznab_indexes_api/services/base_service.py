@@ -1,7 +1,6 @@
 import logging
-from typing import Type
 from pydantic import BaseModel
-from torznab_indexes_api.schemas.torznab_schemas import BaseXmlModel, RssCapabilitiesSchema, CategoryEnum, FunctionType
+from torznab_indexes_api.schemas.torznab_schemas import BaseXmlModel, RssCapabilitiesSchema, CategoryEnum
 
 logger = logging.getLogger(__name__)
 
@@ -18,24 +17,18 @@ class BaseService:
     async def search(self, request_schema: BaseModel) -> str:
         raise NotImplementedError()
 
-
-    async def get_capabilities(self):
-
-        # categories_map = defaultdict(list)
-        # categories = []
-        # for index_, (cat, sub_cats) in enumerate(categories_map.items(), start=100):
-        #     categories.append({
-        #         "name": cat,
-        #         "id": f"{index_}" if cat.lower() != "tv" else "5000",
-        #         "sub_cats": sub_cats
-        #     })
-
-        categories = []
-        for index_, cat, in zip([5000, 2000], CategoryEnum.__members__):
-            categories.append({
+    @classmethod
+    def get_categories(cls):
+        return [
+            {
                 "name": cat,
                 "id": f"{index_}",
-            })
+            }
+            for index_, cat, in zip([5000, 2000], CategoryEnum.__members__)
+        ]
+
+
+    async def get_capabilities(self):
 
         result = RssCapabilitiesSchema(
             **{
@@ -69,7 +62,7 @@ class BaseService:
                     }
                 },
                 "categories": {
-                    "categories": categories,
+                    "categories": self.get_categories(),
                 },
             }
         )

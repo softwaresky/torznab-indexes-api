@@ -46,3 +46,39 @@ def to_kebab(value: str):
     re.sub(r"(\s|_|-)+"," ",
     re.sub(r"[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+",
     lambda mo: ' ' + mo.group(0).lower(), value)).split())
+
+
+CATEGORY_MAP = {
+    # TV
+    "TV": 5000,
+
+    # Movies
+    "MOVIES": 2000,
+    "MOVIE": 2000,
+
+    # Music
+    "MUSIC": 3000,
+    "MP3": 3010,
+    "LOSSLESS": 3040,
+    "FLAC": 3040,
+
+    # Books
+    "BOOKS": 7020,
+    "E-BOOKS": 7020,
+    "EBOOKS": 7020,
+
+    # Adult
+    "XXX": 6000,
+
+    # Other
+    "OTHER": 8000,
+}
+
+def get_category(tags: list[str]) -> int:
+    # priority-based matching (first match wins)
+    for tag in tags:
+        tag_upper = tag.upper()
+        if tag_upper in CATEGORY_MAP:
+            return CATEGORY_MAP[tag_upper]
+
+    return 8000  # fallback

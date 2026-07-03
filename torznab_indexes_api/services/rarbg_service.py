@@ -4,7 +4,7 @@ from torznab_indexes_api.core.clients.rarbg_client import RarbgClient
 from torznab_indexes_api.schemas.rarbg_schemas import RarbgRequestSchema
 from torznab_indexes_api.services.base_service import BaseService
 from torznab_indexes_api.schemas.torznab_schemas import (
-    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr, RssCapabilitiesSchema, CategoryEnum
+    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr, RssCapabilitiesSchema
 )
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ class RarbgService(BaseService):
             async for rarbg_item in client.fetch_data(request_schema=request_schema):
                 if not rarbg_item.ptn_validate(request_schema=request_schema):
                     continue
+
                 torrent_url = urljoin(client.base_url, rarbg_item.file_link)
                 tv_attrs = []
                 if season := rarbg_item.ptn_data.season:
@@ -40,7 +41,7 @@ class RarbgService(BaseService):
                     comments=torrent_url,
                     pubDate=rarbg_item.added.strftime("%a, %d %b %Y %H:%M:%S %z"),
                     description="",
-                    category=rarbg_item.categories[0],
+                    category=f"{rarbg_item.category_id}",
                     enclosure=NewznabEnclosure(
                         url=rarbg_item.magnet_link,
                         type="application/x-bittorrent"
@@ -52,7 +53,7 @@ class RarbgService(BaseService):
                         NewznabTorznabAttr(name="seeders", value=str(rarbg_item.seeds)),
                         # NewznabTorznabAttr(name="peers", value=str(torrent.peers)),
                         NewznabTorznabAttr(name="leechers", value=str(rarbg_item.leechers)),
-                        NewznabTorznabAttr(name="category", value="5000"),  # Hardcoded for now
+                        NewznabTorznabAttr(name="category", value=f"{rarbg_item.category_id}"),  # Hardcoded for now
                         NewznabTorznabAttr(name="language", value=rarbg_item.language),
                         # NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
                         NewznabTorznabAttr(name="uploadvolumefactor", value="1"),
@@ -82,13 +83,6 @@ class RarbgService(BaseService):
         return self._response(result)
 
     async def get_capabilities(self):
-        categories = []
-        for index_, cat, in zip([5000, 2000], CategoryEnum.__members__):
-            categories.append({
-                "name": cat,
-                "id": f"{index_}",
-            })
-
         result = RssCapabilitiesSchema(
             **{
                 "server": {
@@ -121,7 +115,7 @@ class RarbgService(BaseService):
                     }
                 },
                 "categories": {
-                    "categories": categories,
+                    "categories": self.get_categories(),
                 },
             })
 
