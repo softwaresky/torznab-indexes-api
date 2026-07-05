@@ -1,9 +1,8 @@
 import logging
 from torznab_indexes_api.core.clients.tgx_client import TGxClient
 from torznab_indexes_api.schemas.torznab_schemas import (
-    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr
+    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr, SearchParams, TvSearchParams, MovieSearchParams
 )
-from torznab_indexes_api.schemas.tgx_schemas import TGxRequestSchema
 from torznab_indexes_api.services.base_service import BaseService
 
 logger = logging.getLogger(__name__)
@@ -11,15 +10,69 @@ logger = logging.getLogger(__name__)
 
 class TGxService(BaseService):
 
-    async def search(self, request_schema: TGxRequestSchema) -> str:
 
-        logger.info("Search with search params: `%s`", request_schema)
+    async def search(self, request_params: SearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        query = request_params.query or ""
+        filters = []
+        if query:
+            filters.append(f"keywords:{query.strip()}")
+        else:
+            filters.append("category:TV")
+            filters.append("category:Movies")
 
+        return await self._generic_search(page=request_params.page, search_terms=":".join(filters))
+
+    async def tv_search(self, request_params: TvSearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        query = request_params.query or ""
+
+        filters = [
+            "category:TV"
+        ]
+        query_parts = query.split()
+        imdb_id = request_params.imdbid
+        if isinstance(request_params.season, int):
+            season_str = f"s{request_params.season:0>2d}"
+            if season_str not in query_parts:
+                query += f" {season_str}"
+        if isinstance(request_params.episode, int):
+            eps_str = f"e{request_params.episode:0>2d}"
+            if eps_str not in query_parts:
+                query += f" {eps_str}"
+
+        keywords = imdb_id or query
+
+        if keywords:
+            filters.append(f"keywords:{keywords}")
+
+        return await self._generic_search(
+            page=request_params.page, search_terms=":".join(filters), search_season=request_params.season, search_episode=request_params.episode
+        )
+
+    async def movie_search(self, request_params: MovieSearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+
+        query = request_params.query or ""
+
+        filters = [
+            "category:Movies"
+        ]
+        keywords = request_params.imdbid or query
+        if keywords:
+            filters.append(f"keywords:{keywords}")
+
+        return await self._generic_search(page=request_params.page, search_terms=":".join(filters))
+
+
+    async def _generic_search(
+            self, page: int, search_terms: str, search_season: int | str | None = None, search_episode: int | str | None = None
+    ) -> str:
 
         items = []
         async with TGxClient() as tgx_client:
-            async for tgx_item in tgx_client.fetch_data(request_schema=request_schema):
-                if not tgx_item.ptn_validate(request_schema=request_schema):
+            async for tgx_item in tgx_client.fetch_data(page=page, search_terms=search_terms):
+                if not tgx_item.ptn_validate(season=search_season, episode=search_episode):
                     continue
                 torrent_url = tgx_client.get_torrent_url(pk=tgx_item.primary_key, title=tgx_item.name)
                 # download_url = tgx_client.get_download_url(info_hash=tgx_item.hash, title=tgx_item.name)

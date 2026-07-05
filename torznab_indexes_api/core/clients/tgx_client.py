@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from torznab_indexes_api.core.clients.base_client import BaseClient
 from torznab_indexes_api.core.utils import to_kebab
-from torznab_indexes_api.schemas.tgx_schemas import TgxItemSchema, TGxRequestSchema
+from torznab_indexes_api.schemas.tgx_schemas import TgxItemSchema
 
 logger = logging.getLogger(__name__)
 
@@ -286,14 +286,14 @@ class TGxClient(BaseClient):
             return {}
         return await self.parse_torrent_data(torrent_url=f"post-detail/{pk}/{to_kebab(n)}/")
 
-    async def fetch_data(self, request_schema: TGxRequestSchema) -> AsyncGenerator[TgxItemSchema, None]:
+    async def fetch_data(self, page: int, search_terms: str) -> AsyncGenerator[TgxItemSchema, None]:
 
         results = []
         tasks = []
         params = {
-            "page": request_schema.search_params.page,
+            "page": page,
         }
-        url = f"get-posts/{request_schema.search_terms()}:format:json"
+        url = f"get-posts/{search_terms}:format:json"
         response_str = await self._request(method="GET", url=url, params=params)
         try:
             response_data: dict = json.loads(response_str)

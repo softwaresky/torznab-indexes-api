@@ -2,39 +2,35 @@ import logging
 
 from torznab_indexes_api.core.clients.yts_client import YTSClient
 from torznab_indexes_api.schemas.torznab_schemas import (
-    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr
+    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr, SearchParams, MovieSearchParams
 )
-from torznab_indexes_api.schemas.yts_schemas import YTSRequestSchema, YTSListMoviesRequestSchema
+from torznab_indexes_api.schemas.yts_schemas import YTSListMoviesRequestSchema
 from torznab_indexes_api.services.base_service import BaseService
 
 logger = logging.getLogger(__name__)
 
 class YTSService(BaseService):
 
-    async def search(self, request_schema: YTSRequestSchema) -> str:
+    async def search(self, request_params: SearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        return await self._generic_search(page=request_params.page, limit=request_params.limit, search_terms=request_params.query)
 
-        logger.info("Search with search params: `%s`", request_schema)
+    async def movie_search(self, request_params: MovieSearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        search_terms = request_params.imdbid or request_params.query
+        return await self._generic_search(page=request_params.page, limit=request_params.limit, search_terms=search_terms)
 
-
-        request_yts_client = YTSListMoviesRequestSchema(query_term=request_schema.search_terms())
+    async def _generic_search(self, page: int, limit: int, search_terms: str | None = None) -> str:
+        request_yts = YTSListMoviesRequestSchema(query_term=search_terms, page=page, limit=limit)
         items = []
         async with YTSClient() as yts_client:
-            async for movie in yts_client.list_movies(request_schema=request_yts_client):
+            async for movie in yts_client.list_movies(request_schema=request_yts):
 
                 for torrent in movie.torrents:
-                    if not torrent.ptn_validate(request_schema=request_schema):
+                    if not movie.ptn_validate(season=None, episode=None):
                         continue
 
                     # download_url = tgx_client.get_download_url(info_hash=tgx_item.hash, title=tgx_item.name)
-                    tv_attrs = []
-                    if season := torrent.ptn_data.season:
-                        tv_attrs.append(
-                            NewznabTorznabAttr(name="season", value=str(season))
-                        )
-                    if episode := torrent.ptn_data.episode:
-                        tv_attrs.append(
-                            NewznabTorznabAttr(name="episode", value=str(episode))
-                        )
 
                     magnet_link = torrent.url
                     items.append(NewznabItem(
@@ -72,7 +68,7 @@ class YTSService(BaseService):
                             NewznabTorznabAttr(name="tag", value=torrent.is_repack),
                             NewznabTorznabAttr(name="tag", value=torrent.video_codec),
                             NewznabTorznabAttr(name="tag", value=torrent.audio_channels),
-                        ] + tv_attrs
+                        ]
                     ))
 
         logger.info("Found `%d` torrents", len(items))

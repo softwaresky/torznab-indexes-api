@@ -4,6 +4,8 @@ from typing import Any, ClassVar
 from pydantic import BaseModel, field_validator, Field, ConfigDict, computed_field, model_validator
 from pydantic_xml import BaseXmlModel, element, attr
 
+from torznab_indexes_api.schemas import merge_models
+
 import PTN
 
 from fastapi import Query
@@ -20,35 +22,25 @@ class CategoryEnum(StrEnum):
     MOVIES = "Movies"
 
 
-class FunctionType(str, Enum):
+class FunctionType(StrEnum):
     caps = "caps"
     search = "search"
     movie = "movie"
+    tvsearch = "tvsearch"
 
 
-# BaseModel
-class SearchSchema(BaseModel):
-    MAX_INTERNAL: ClassVar[int] = 50
-    MAX_EXTERNAL: ClassVar[int] = 50
-
+# -----------------------------
+# Base shared params (ALL queries)
+# -----------------------------
+class TorznabBaseParams(BaseModel):
+    apikey: str | None = None
     query: str = Field(default="top 10", description="Query string / search terms", alias="q")
     cat: str = Field(default="")
-    attrs: list | None = Field(Query(default_factory=list))
+    attrs: str | None = None
     offset: int | None = Field(default=0, ge=0)
     limit: int | None = Field(default=50, gt=0)
+    tag: str | None = None
 
-
-    @model_validator(mode="after")
-    def scale_values(self):
-        ratio = self.MAX_EXTERNAL / self.MAX_INTERNAL
-
-        if self.limit is not None:
-            self.limit = max(1, int(self.limit * ratio))
-
-        if self.offset is not None:
-            self.offset = max(0, int(self.offset * ratio))
-
-        return self
 
     @computed_field
     @property
@@ -61,34 +53,70 @@ class SearchSchema(BaseModel):
         return 0
 
 
-class ImdbSearchSchema(SearchSchema):
+# -----------------------------
+# Generic search
+# t=search
+# -----------------------------
+class SearchParams(TorznabBaseParams):
+    query: str | None = Field(default=None, alias="q")
+
+
+
+class ImdbBaseParams(SearchParams):
     imdbid: str | None = Field(default=None)
+    genre: str | None = Field(default=None)
 
     @field_validator("imdbid", mode="before")
     @classmethod
-    def imdbid_validator(cls, value: str) -> str:
-        if not value.startswith("tt") and value.isdigit():
+    def imdbid_validator(cls, value: str | None) -> str:
+        if value and not value.startswith("tt") and value.isdigit():
             return f"tt{value}"
         return value
 
 
-class TvSearchSchema(ImdbSearchSchema):
+# -----------------------------
+# TV search
+# t=tvsearch
+# -----------------------------
+class TvSearchParams(ImdbBaseParams):
     season: int | None = Field(default=None)
     episode: int | None = Field(default=None, alias="ep")
+    rid: int| None = None
+    tvdbid: int | None = None
+    tvmazeid: int | None = None
 
 
-class MovieSearchSchema(ImdbSearchSchema):
-    genre: str | None = Field(default=None)
+# -----------------------------
+# Movie search
+# t=movie-search
+# -----------------------------
+class MovieSearchParams(ImdbBaseParams):
+    pass
 
 
+# -----------------------------
+# Audio search
+# t=audio-search
+# -----------------------------
+class AudioSearchParams(SearchParams):
+    artist: str | None = None
+    album: str | None = None
 
-class BaseRequestSchema(BaseModel):
-    """Base Request structure"""
 
-    search_params: TvSearchSchema | MovieSearchSchema | SearchSchema | None = Field(default=None, union_mode="left_to_right")
+# -----------------------------
+# Book search
+# t=book-search
+# -----------------------------
+class BookSearchParams(SearchParams):
+    author: str | None = None
+    title: str | None = None
 
-    def search_terms(self) -> Any:
-        raise NotImplementedError()
+
+class AllParamsSchemas(merge_models(
+    "AllParams",
+    SearchParams, TvSearchParams, MovieSearchParams, AudioSearchParams, BookSearchParams)):
+    pass
+
 
 
 class TorrentTitleParseSchema(BaseModel):
@@ -127,19 +155,17 @@ class BaseTorrentItemSchema(BaseModel):
     def ptn_data(self) -> TorrentTitleParseSchema:
         return TorrentTitleParseSchema.model_validate(PTN.parse(self.ptn_name))
 
-    def ptn_validate(self, request_schema: BaseRequestSchema) -> bool:
-        params = request_schema.search_params
-        if isinstance(params, TvSearchSchema):
-            if params.season:
-                if params.season in self.ptn_data.season:
-                    if params.episode:
-                        if params.episode in self.ptn_data.episode:
-                            return True
-                        else:
-                            return False
-                    return True
-                else:
-                    return False
+    def ptn_validate(self, season: str | int | None = None, episode: str | int | None = None) -> bool:
+        if season:
+            if season in self.ptn_data.season:
+                if episode:
+                    if episode in self.ptn_data.episode:
+                        return True
+                    else:
+                        return False
+                return True
+            else:
+                return False
         return True
 
 ## XML Schema

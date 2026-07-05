@@ -3,29 +3,13 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 from torznab_indexes_api.core.types import EnsureDateTime
-from torznab_indexes_api.schemas import merge_models
-from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, MovieSearchSchema, BaseRequestSchema, BaseTorrentItemSchema
+from torznab_indexes_api.schemas.torznab_schemas import  BaseTorrentItemSchema
 
 class FunctionType(str, Enum):
     caps = "caps"
     search = "search"
     movie = "movie"
 
-
-class AllParamsSchemas(merge_models(
-    "AllParams",
-    SearchSchema, MovieSearchSchema)):
-    pass
-
-
-class YTSRequestSchema(BaseRequestSchema):
-    search_params: MovieSearchSchema | SearchSchema |  None = Field(default=None, union_mode="left_to_right")
-
-    def search_terms(self) -> str:
-        query: str | None = getattr(self.search_params, "query", "")
-        imdb_id: str | None = getattr(self.search_params, "imdbid", "")
-
-        return imdb_id or query
 
 
 class YTSMovieDetailsRequestSchema(BaseModel):
@@ -43,24 +27,15 @@ class YTSMovieDetailsRequestSchema(BaseModel):
 
 
 class YTSListMoviesRequestSchema(BaseModel):
-    limit: int = Field(default=20,
-                       description="Integer between 1 - 50 (inclusive)	20	The limit of results per page that has been set")
-    page: int = Field(default=1,
-                      description="Integer (Unsigned)	1	Used to see the next page of movies, eg limit=15 and page=2 will show you movies 15-30")
-    quality: str = Field(default="",
-                         description="String (480p, 720p, 1080p, 1080p.x265, 2160p, 3D)	All	Used to filter by a given quality")
-    minimum_rating: int = Field(default=0, ge=0, le=9,
-                                description="Integer between 0 - 9 (inclusive)	0	Used to filter movie by a given minimum IMDb rating")
-    query_term: str = Field(default="",
-                            description="String	0	Used for movie search, matching on: Movie Title/IMDb Code, Actor Name/IMDb Code, Director Name/IMDb Code")
-    genre: str = Field(default="",
-                       description="String	All	Used to filter by a given genre (See http://www.imdb.com/genre/ for full list")
-    sort_by: str = Field(default="seeds",
-                         description="String (title, year, rating, peers, seeds, download_count, like_count, date_added) date_added	Sorts the results by chosen value")
-    order_by: str = Field(default="desc",
-                          description="String (desc, asc)	desc	Orders the results by either Ascending or Descending order")
-    with_rt_ratings: bool = Field(default=False,
-                                  description="Boolean	false	Returns the list with the Rotten Tomatoes rating included")
+    limit: int | None = Field(default=20, description="Integer between 1 - 50 (inclusive)	20	The limit of results per page that has been set")
+    page: int | None = Field(default=1, description="Integer (Unsigned)	1	Used to see the next page of movies, eg limit=15 and page=2 will show you movies 15-30")
+    quality: str | None = Field(default=None, description="String (480p, 720p, 1080p, 1080p.x265, 2160p, 3D)	All	Used to filter by a given quality")
+    minimum_rating: int | None = Field(default=0, ge=0, le=9, description="Integer between 0 - 9 (inclusive)	0	Used to filter movie by a given minimum IMDb rating")
+    query_term: str | None = Field(default=None, description="String	0	Used for movie search, matching on: Movie Title/IMDb Code, Actor Name/IMDb Code, Director Name/IMDb Code")
+    genre: str | None = Field(default=None, description="String	All	Used to filter by a given genre (See http://www.imdb.com/genre/ for full list")
+    sort_by: str | None = Field(default="seeds", description="String (title, year, rating, peers, seeds, download_count, like_count, date_added) date_added	Sorts the results by chosen value")
+    order_by: str | None = Field(default="desc", description="String (desc, asc)	desc	Orders the results by either Ascending or Descending order")
+    with_rt_ratings: bool | None = Field(default=False, description="Boolean	false	Returns the list with the Rotten Tomatoes rating included")
 
 
 class YTSResponseTorrentSchema(BaseModel):

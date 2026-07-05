@@ -1,6 +1,8 @@
 import logging
-from pydantic import BaseModel
-from torznab_indexes_api.schemas.torznab_schemas import BaseXmlModel, RssCapabilitiesSchema, CategoryEnum
+from torznab_indexes_api.schemas.torznab_schemas import (
+    BaseXmlModel, RssCapabilitiesSchema, CategoryEnum, SearchParams, TvSearchParams, MovieSearchParams,
+    AudioSearchParams, BookSearchParams
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +16,19 @@ class BaseService:
             standalone=True
         )
 
-    async def search(self, request_schema: BaseModel) -> str:
+    async def search(self, request_params: SearchParams) -> str:
+        raise NotImplementedError()
+
+    async def tv_search(self, request_params: TvSearchParams) -> str:
+        raise NotImplementedError()
+
+    async def movie_search(self, request_params: MovieSearchParams) -> str:
+        raise NotImplementedError()
+
+    async def audio_search(self, request_params: AudioSearchParams) -> str:
+        raise NotImplementedError()
+
+    async def book_search(self, request_params: BookSearchParams) -> str:
         raise NotImplementedError()
 
     @classmethod

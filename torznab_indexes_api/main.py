@@ -9,7 +9,7 @@ from torznab_indexes_api.core.exceptions import (
     AppExceptionCase, app_exception_handler, http_exception_handler
 )
 
-from torznab_indexes_api.routers import tgx_router, yts_router, rarbg_router
+from torznab_indexes_api.routers import rarbg_router, tgx_router, yts_router
 from torznab_indexes_api.core.config.logging import get_logging_config
 
 logging.config.dictConfig(get_logging_config())
