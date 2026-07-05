@@ -18,7 +18,7 @@ class YTSClient(BaseClient):
     https://yts.lt/api
     """
 
-    base_url = "https://yts.lt/api/v2"
+    base_url = "https://movies-api.accel.li/api/v2"
 
 
     async def list_movies(self, request_schema: YTSListMoviesRequestSchema) -> AsyncGenerator[YTSResponseMovieSchema, None]:

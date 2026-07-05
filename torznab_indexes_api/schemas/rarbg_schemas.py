@@ -2,8 +2,7 @@ from enum import Enum
 
 from pydantic import field_validator, Field
 from torznab_indexes_api.core.utils import get_category
-from torznab_indexes_api.schemas import merge_models
-from torznab_indexes_api.schemas.torznab_schemas import  SearchSchema, BaseRequestSchema, TvSearchSchema, MovieSearchSchema, BaseTorrentItemSchema
+from torznab_indexes_api.schemas.torznab_schemas import  BaseTorrentItemSchema
 from torznab_indexes_api.core.types import EnsureDateTime
 from torznab_indexes_api.core.utils import parse_size
 
@@ -12,25 +11,6 @@ class FunctionType(str, Enum):
     search = "search"
     tvsearch = "tvsearch"
     movie = "movie"
-
-
-class RarbgSearchSchema(SearchSchema):
-    MAX_EXTERNAL = 50
-    MAX_INTERNAL = 20
-
-
-class AllParamsSchemas(merge_models(
-    "AllParams",
-    RarbgSearchSchema, TvSearchSchema, MovieSearchSchema)):
-    pass
-
-
-class RarbgRequestSchema(BaseRequestSchema):
-
-    search_params: TvSearchSchema | MovieSearchSchema | RarbgSearchSchema | None = Field(default=None, union_mode="left_to_right")
-
-    def search_terms(self):
-        return self.search_params.query
 
 
 

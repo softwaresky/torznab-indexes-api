@@ -1,25 +1,45 @@
 import logging
+from typing import Literal
 from urllib.parse import urljoin
 from torznab_indexes_api.core.clients.rarbg_client import RarbgClient
-from torznab_indexes_api.schemas.rarbg_schemas import RarbgRequestSchema
 from torznab_indexes_api.services.base_service import BaseService
 from torznab_indexes_api.schemas.torznab_schemas import (
-    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr, RssCapabilitiesSchema
+    RssResult, NewznabGuid, NewznabItem, NewznabChannel, NewznabEnclosure, NewznabTorznabAttr, RssCapabilitiesSchema,
+    SearchParams, TvSearchParams, MovieSearchParams
 )
-
 logger = logging.getLogger(__name__)
 
 
 class RarbgService(BaseService):
 
-    async def search(self, request_schema: RarbgRequestSchema) -> str:
+    async def search(self, request_params: SearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        return await self._generic_search(
+            request_params=request_params, search_mode="search" if request_params.query else "torrents",  categories=["tv", "movies"]
+        )
 
-        logger.info("Search with search params: `%s`", request_schema)
+    async def tv_search(self, request_params: TvSearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        return await self._generic_search(
+            request_params=request_params, search_mode="tv", categories=["tv"], search_season=request_params.season, search_episode=request_params.episode
+        )
 
+    async def movie_search(self, request_params: MovieSearchParams) -> str:
+        logger.info("Search with search params: `%s`", request_params)
+        return await self._generic_search(request_params=request_params, search_mode="movies", categories=["movies"])
+
+
+    async def _generic_search(
+            self, request_params: SearchParams | TvSearchParams | MovieSearchParams,
+            search_mode: Literal["tv", "movies", "search", "torrents"] = "torrents",
+            categories: list[str] = None,
+            search_season: int | str | None = None,
+            search_episode: int | str | None = None
+    ) -> str:
         items = []
         async with RarbgClient() as client:
-            async for rarbg_item in client.fetch_data(request_schema=request_schema):
-                if not rarbg_item.ptn_validate(request_schema=request_schema):
+            async for rarbg_item in client.fetch_data(page=request_params.page, search_terms=request_params.query, search_mode=search_mode, categories=categories):
+                if not rarbg_item.ptn_validate(season=search_season, episode=search_episode):
                     continue
 
                 torrent_url = urljoin(client.base_url, rarbg_item.file_link)
@@ -58,16 +78,6 @@ class RarbgService(BaseService):
                         # NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
                         NewznabTorznabAttr(name="uploadvolumefactor", value="1"),
                         NewznabTorznabAttr(name="uploader", value=rarbg_item.uploader),
-                        # *[
-                        #     NewznabTorznabAttr(name="tag", value=tag)
-                        #     for tag in rarbg_item.tags
-                        # ]
-                        # Tags
-                        # NewznabTorznabAttr(name="tag", value=torrent.type),
-                        # NewznabTorznabAttr(name="tag", value=torrent.quality),
-                        # NewznabTorznabAttr(name="tag", value=torrent.is_repack),
-                        # NewznabTorznabAttr(name="tag", value=torrent.video_codec),
-                        # NewznabTorznabAttr(name="tag", value=torrent.audio_channels),
                     ] + tv_attrs
                 ))
 
@@ -81,6 +91,7 @@ class RarbgService(BaseService):
             )
         )
         return self._response(result)
+
 
     async def get_capabilities(self):
         result = RssCapabilitiesSchema(

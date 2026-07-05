@@ -1,11 +1,11 @@
 import asyncio
 import logging
-from typing import AsyncGenerator, Any
+from typing import AsyncGenerator, Any, Literal
 from bs4 import BeautifulSoup
 from pydantic import ValidationError
 
 from torznab_indexes_api.core.clients.base_client import BaseClient
-from torznab_indexes_api.schemas.rarbg_schemas import RarbgRequestSchema, RarbgItemSchema
+from torznab_indexes_api.schemas.rarbg_schemas import RarbgItemSchema
 
 logger = logging.getLogger(__name__)
 
@@ -105,12 +105,23 @@ class RarbgClient(BaseClient):
 
         return data
 
-    async def fetch_data(self, request_schema: RarbgRequestSchema) -> AsyncGenerator[RarbgItemSchema, None]:
+
+    async def fetch_data(
+            self, page: int, search_terms: str | None = None, search_mode: Literal["tv", "movies", "search", "torrents"] = "torrents", categories: list[str] | None = None
+    ) -> AsyncGenerator[RarbgItemSchema, None]:
+        params: list[tuple[str, str]] = []
+        if search_terms:
+            params.append(("search", search_terms))
+            search_mode = "search"
+
+        for category in categories or []:
+            params.append(("category[]", category))
+
         response_str = await self._request(
             method="GET",
-            url=f"search/{request_schema.search_params.page}",
+            url=f"{search_mode}/{page}",
             headers={ "User-Agent": "Mozilla/5.0" },
-            params={ "search": request_schema.search_terms()},
+            params=params,
         )
         items = self._parse_response(response_str)
         torrents_detail = await asyncio.gather(*[
