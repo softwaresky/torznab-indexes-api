@@ -1,7 +1,6 @@
 from functools import cached_property
-from enum import Enum, StrEnum
-from typing import Any, ClassVar
-from pydantic import BaseModel, field_validator, Field, ConfigDict, computed_field, model_validator
+from enum import StrEnum
+from pydantic import BaseModel, field_validator, Field, ConfigDict, computed_field
 from pydantic_xml import BaseXmlModel, element, attr
 
 from torznab_indexes_api.schemas import merge_models
