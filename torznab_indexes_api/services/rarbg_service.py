@@ -29,6 +29,12 @@ class RarbgService(BaseService):
         return await self._generic_search(request_params=request_params, search_mode="movies", categories=["movies"])
 
 
+    async def get_magnet_link(self, torrent_id: str) -> str:
+        async with RarbgClient() as client:
+            data = await client.torrent_detail(detail_url=torrent_id)
+            return data.get("magnet_link") or ""
+
+
     async def _generic_search(
             self, request_params: SearchParams | TvSearchParams | MovieSearchParams,
             search_mode: Literal["tv", "movies", "search", "torrents"] = "torrents",
@@ -43,6 +49,7 @@ class RarbgService(BaseService):
                     continue
 
                 torrent_url = urljoin(client.base_url, rarbg_item.file_link)
+                release_url =  urljoin(self.host_base_url, f"/download/rarbg/{rarbg_item.file_link}")
                 tv_attrs = []
                 if season := rarbg_item.ptn_data.season:
                     tv_attrs.append(
@@ -52,18 +59,21 @@ class RarbgService(BaseService):
                     tv_attrs.append(
                         NewznabTorznabAttr(name="episode", value=str(episode))
                     )
+                if rarbg_item.language:
+                    tv_attrs.append(NewznabTorznabAttr(name="language", value=rarbg_item.language))
+
                 items.append(NewznabItem(
                     title=f"{rarbg_item.release_name or rarbg_item.file}",
                     guid=NewznabGuid(
                         title=torrent_url
                     ),
-                    link=rarbg_item.magnet_link,
+                    link=torrent_url,
                     comments=torrent_url,
                     pubDate=rarbg_item.added.strftime("%a, %d %b %Y %H:%M:%S %z"),
                     description="",
                     category=f"{rarbg_item.category_id}",
                     enclosure=NewznabEnclosure(
-                        url=rarbg_item.magnet_link,
+                        url=release_url,
                         type="application/x-bittorrent"
                     ),
                     attrs=[
@@ -74,7 +84,6 @@ class RarbgService(BaseService):
                         # NewznabTorznabAttr(name="peers", value=str(torrent.peers)),
                         NewznabTorznabAttr(name="leechers", value=str(rarbg_item.leechers)),
                         NewznabTorznabAttr(name="category", value=f"{rarbg_item.category_id}"),  # Hardcoded for now
-                        NewznabTorznabAttr(name="language", value=rarbg_item.language),
                         # NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
                         NewznabTorznabAttr(name="uploadvolumefactor", value="1"),
                         NewznabTorznabAttr(name="uploader", value=rarbg_item.uploader),

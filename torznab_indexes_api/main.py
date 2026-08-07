@@ -9,7 +9,7 @@ from torznab_indexes_api.core.exceptions import (
     AppExceptionCase, app_exception_handler, http_exception_handler
 )
 
-from torznab_indexes_api.routers import rarbg_router, tgx_router, yts_router
+from torznab_indexes_api.routers import rarbg_router, tgx_router, yts_router, download_router
 from torznab_indexes_api.core.config.logging import get_logging_config
 
 logging.config.dictConfig(get_logging_config())
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
     app.include_router(tgx_router, prefix="/tgx")
     app.include_router(yts_router, prefix="/yts")
     app.include_router(rarbg_router, prefix="/rarbg")
+    app.include_router(download_router, prefix="/download")
 
     return app
 

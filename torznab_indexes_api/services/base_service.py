@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 
 class BaseService:
 
+    def __init__(self):
+        self.host_base_url = ""
+
     @staticmethod
     def _response(schema: BaseXmlModel) -> str:
         return schema.to_xml(
@@ -29,6 +32,9 @@ class BaseService:
         raise NotImplementedError()
 
     async def book_search(self, request_params: BookSearchParams) -> str:
+        raise NotImplementedError()
+
+    async def get_magnet_link(self, torrent_id: str) -> str:
         raise NotImplementedError()
 
     @classmethod

@@ -1,11 +1,11 @@
 from typing import Generic, TypeVar
 
-from fastapi import APIRouter, Query, Response, Depends
+from fastapi import APIRouter, Query, Request, Response, Depends
 
 from pydantic import BaseModel
 from torznab_indexes_api.services.base_service import BaseService
 from torznab_indexes_api.schemas.torznab_schemas import (
-    FunctionType, AllParamsSchemas, SearchParams, TvSearchParams, MovieSearchParams, AudioSearchParams, BookSearchParams
+    FunctionType, AllParamsSchemas, SearchParams, TvSearchParams, MovieSearchParams
 )
 from torznab_indexes_api.core.exceptions import RequestErrorException
 
@@ -25,10 +25,11 @@ class BaseRouter(Generic[TParams]):
 
         @self.router.get("/api")
         async def search(
+                request: Request,
                 function_type: function_types = Query(default=list(function_types)[index], alias="t"),
                 search_params: AllParamsSchemas = Depends(),
         ):
-
+            self.service.host_base_url = str(request.base_url)
             data: str = ""
             search_data = search_params.model_dump(mode="json", by_alias=True)
             match function_type:
@@ -49,7 +50,6 @@ class BaseRouter(Generic[TParams]):
     @staticmethod
     def xml_response(content: str) -> Response:
         return Response(content=content, media_type="application/xml")
-
 
     def get_function_types(self) -> FunctionType:
         return self.function_type
