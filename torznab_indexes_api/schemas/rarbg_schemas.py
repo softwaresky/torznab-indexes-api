@@ -17,7 +17,7 @@ class FunctionType(str, Enum):
 class RarbgItemSchema(BaseTorrentItemSchema):
     cat: str = Field(alias="cat")
     file: str
-    release_name: str | None
+    release_name: str | None = Field(default=None)
     file_link: str
     magnet_link: str | None = None
     tags: list[str] = Field(default=[], alias="tags")

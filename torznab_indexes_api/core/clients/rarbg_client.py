@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import AsyncGenerator, Any, Literal
 from bs4 import BeautifulSoup
@@ -124,15 +123,9 @@ class RarbgClient(BaseClient):
             params=params,
         )
         items = self._parse_response(response_str)
-        torrents_detail = await asyncio.gather(*[
-            self.torrent_detail(detail_url=item["file_link"]) for item in items
-        ])
-        for item, torrent_detail in zip(items, torrents_detail):
-            if not torrent_detail:
-                logger.warning("No torrent data found for %s", item["file_link"])
-                continue
+        for item in items:
             try:
-                yield RarbgItemSchema.model_validate(item | torrent_detail)
+                yield RarbgItemSchema.model_validate(item)
             except ValidationError as err:
                 logger.error("Failed validation on `%s`. Data: `%s`",
                              RarbgItemSchema.__class__.__name__,
