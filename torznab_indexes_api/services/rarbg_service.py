@@ -43,8 +43,17 @@ class RarbgService(BaseService):
             search_episode: int | str | None = None
     ) -> str:
         items = []
+        search_terms = [request_params.query]
+
+        if request_params.season:
+            search_terms.append(f"S{request_params.season:02d}")
+
+        if request_params.episode:
+            search_terms.append(f"E{request_params.episode:02d}")
+
         async with RarbgClient() as client:
-            async for rarbg_item in client.fetch_data(page=request_params.page, search_terms=request_params.query, search_mode=search_mode, categories=categories):
+            async for rarbg_item in client.fetch_data(page=request_params.page, search_terms=" ".join(search_terms), search_mode=search_mode, categories=categories):
+
                 if not rarbg_item.ptn_validate(season=search_season, episode=search_episode):
                     continue
 
@@ -78,13 +87,10 @@ class RarbgService(BaseService):
                     ),
                     attrs=[
                         NewznabTorznabAttr(name="size", value=str(rarbg_item.size_bytes)),
-                        # NewznabTorznabAttr(name="infohash", value=torrent.hash),
-                        # NewznabTorznabAttr(name="guid", value=torrent.hash),
                         NewznabTorznabAttr(name="seeders", value=str(rarbg_item.seeds)),
-                        # NewznabTorznabAttr(name="peers", value=str(torrent.peers)),
                         NewznabTorznabAttr(name="leechers", value=str(rarbg_item.leechers)),
                         NewznabTorznabAttr(name="category", value=f"{rarbg_item.category_id}"),  # Hardcoded for now
-                        # NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
+                        NewznabTorznabAttr(name="language", value=rarbg_item.language),
                         NewznabTorznabAttr(name="uploadvolumefactor", value="1"),
                         NewznabTorznabAttr(name="uploader", value=rarbg_item.uploader),
                     ] + tv_attrs
