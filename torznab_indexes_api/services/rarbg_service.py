@@ -91,7 +91,6 @@ class RarbgService(BaseService):
                         NewznabTorznabAttr(name="leechers", value=str(rarbg_item.leechers)),
                         NewznabTorznabAttr(name="category", value=f"{rarbg_item.category_id}"),  # Hardcoded for now
                         NewznabTorznabAttr(name="language", value=rarbg_item.language),
-                        # NewznabTorznabAttr(name="downloadvolumefactor", value="0"),
                         NewznabTorznabAttr(name="uploadvolumefactor", value="1"),
                         NewznabTorznabAttr(name="uploader", value=rarbg_item.uploader),
                     ] + tv_attrs
