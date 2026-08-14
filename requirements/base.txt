@@ -10,3 +10,4 @@ python-dateutil==2.9.0
 tenacity==9.0.0
 parse-torrent-title==2.8.1
 python-multipart==0.0.32
+cachetools==7.1.7

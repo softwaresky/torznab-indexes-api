@@ -1,9 +1,11 @@
+import json
 import logging
+from hashlib import md5
 from typing import AsyncGenerator
 
 from urllib.parse import urlparse, parse_qs
 
-from tenacity import (  # pylint: disable=import-error
+from tenacity import (
     retry,
     stop_after_attempt,
     wait_fixed,
@@ -12,6 +14,7 @@ from tenacity import (  # pylint: disable=import-error
 )
 
 from httpx import AsyncClient, Response, HTTPError, TimeoutException, ConnectError
+from torznab_indexes_api.core.cache import get_request_cache
 
 logger = logging.getLogger(__name__)
 
@@ -23,16 +26,39 @@ class BaseClient:
     def __init__(self):
         self._session: AsyncClient | None = None
 
+
     async def _create_session(self):
-        self._session = AsyncClient(
-            base_url=self.base_url,
-            timeout=15
+        self._session = AsyncClient(base_url=self.base_url, timeout=30)
+
+    @staticmethod
+    def _build_cache_key(method: str,url: str,**kwargs) -> str:
+        data = {
+            "method": method.upper(),
+            "url": url,
+            "params": kwargs.get("params"),
+            "json": kwargs.get("json"),
+            "content": kwargs.get("content"),
+        }
+
+        serialized = json.dumps(
+            data,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
         )
+        return md5(serialized.encode("utf-8")).hexdigest()
 
     async def _request(self, method: str, url: str, **kwargs) -> str:
+
+        request_key = self._build_cache_key(method, url, **kwargs)
+        cached = await get_request_cache().get(request_key=request_key)
+        if cached:
+            return cached
+
         response = await self._request_and_retry(method, url, **kwargs)
 
         if response.is_success:
+            await get_request_cache().set(request_key=request_key, value=response.text)
             return response.text
         else:
             try:
@@ -59,7 +85,7 @@ class BaseClient:
         return await self._session.request(method, url, **kwargs)
 
 
-    async def _reqeust_playwright(self, url: str, params: dict | None = None, **kwargs) -> str:
+    async def _request_playwright(self, url: str, params: dict | None = None, **kwargs) -> str:
         # async with async_playwright() as p:
         #     browser = await p.chromium.launch(headless=True)
         #     page = await browser.new_page()
