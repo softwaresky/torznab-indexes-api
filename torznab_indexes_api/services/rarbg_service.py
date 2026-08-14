@@ -57,8 +57,9 @@ class RarbgService(BaseService):
         async with RarbgClient() as client:
             async for rarbg_item in client.fetch_data(page=request_params.page, search_terms=" ".join(parts) if parts else None, search_mode=search_mode, categories=categories):
 
-                if not rarbg_item.ptn_validate(season=search_season, episode=search_episode):
-                    continue
+                # TODO: Until this is done https://github.com/softwaresky/torznab-indexes-api/issues/11
+                # if not rarbg_item.ptn_validate(season=search_season, episode=search_episode):
+                #     continue
 
                 torrent_url = urljoin(client.base_url, rarbg_item.file_link)
                 release_url =  urljoin(self.host_base_url, f"/download/rarbg/{rarbg_item.file_link}")
