@@ -44,18 +44,18 @@ class RarbgService(BaseService):
     ) -> str:
         items = []
 
-        parts = []
-        if request_params.query:
-            parts.append(request_params.query)
+        # parts = []
+        # if request_params.query:
+        #     parts.append(request_params.query)
 
-        if search_season:
-            parts.append(f"S{search_season:02d}")
-
-        if search_episode:
-            parts.append(f"E{search_episode:02d}")
+        # if search_season:
+        #     parts.append(f"S{search_season:02d}")
+        #
+        # if search_episode:
+        #     parts.append(f"E{search_episode:02d}")
 
         async with RarbgClient() as client:
-            async for rarbg_item in client.fetch_data(page=request_params.page, search_terms=" ".join(parts) if parts else None, search_mode=search_mode, categories=categories):
+            async for rarbg_item in client.fetch_data(page=request_params.page, search_terms=request_params.query, search_mode=search_mode, categories=categories):
 
                 # TODO: Until this is done https://github.com/softwaresky/torznab-indexes-api/issues/11
                 # if not rarbg_item.ptn_validate(season=search_season, episode=search_episode):
