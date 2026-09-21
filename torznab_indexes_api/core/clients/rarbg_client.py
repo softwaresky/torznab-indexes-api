@@ -2,14 +2,51 @@ import logging
 from typing import AsyncGenerator, Any, Literal
 from bs4 import BeautifulSoup
 from pydantic import ValidationError
+from httpx import AsyncClient
 
+from torznab_indexes_api.core.config.settings import get_settings
 from torznab_indexes_api.core.clients.base_client import BaseClient
 from torznab_indexes_api.schemas.rarbg_schemas import RarbgItemSchema
 
 logger = logging.getLogger(__name__)
 
+
 class RarbgClient(BaseClient):
     base_url = "https://rargb.to"
+    flare_solver_url = get_settings().flare_solver_url
+
+    async def _request(self, method: str, url: str, **kwargs) -> str:
+        """
+        Override the base _request method to route GET requests through FlareSolverr
+        to bypass Cloudflare challenges.
+        """
+        # Construct the full target URL if a relative path is passed
+        full_url = f"{self.base_url}/{url.lstrip('/')}" if not url.startswith("http") else url
+
+        payload = {
+            "cmd": "request.get",
+            "url": full_url,
+            "maxTimeout": 60000,
+        }
+
+        async with AsyncClient() as client:
+            try:
+                response = await client.post(
+                    self.flare_solver_url,
+                    json=payload,
+                    timeout=70.0
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                if data.get("status") == "ok":
+                    return data["solution"]["response"]
+                else:
+                    logger.error("FlareSolverr failed to solve challenge: %s", data)
+                    raise Exception(f"FlareSolverr error: {data.get('message')}")
+            except Exception as e:
+                logger.exception("Error communicating with FlareSolverr for URL: %s", full_url)
+                raise e
 
     @staticmethod
     def _parse_response(response_str: str) -> list[dict[str, Any]]:
@@ -56,23 +93,18 @@ class RarbgClient(BaseClient):
 
         return results
 
-
     async def get_magnet(self, detail_url: str) -> str | None:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response_str = await self._request(method="GET", url=detail_url, headers=headers)
+        response_str = await self._request(method="GET", url=detail_url)
         soup = BeautifulSoup(response_str, "html.parser")
 
-        # most torrent sites have magnet link like this:
         magnet_tag = soup.find("a", href=lambda x: x and x.startswith("magnet:"))
-
         if magnet_tag:
             return magnet_tag["href"]
 
         return None
 
-
     async def torrent_detail(self, detail_url: str) -> dict[str, Any]:
-        response_str = await self._request(method="GET", url=detail_url, headers={"User-Agent": "Mozilla/5.0"})
+        response_str = await self._request(method="GET", url=detail_url)
         soup = BeautifulSoup(response_str, "html.parser")
 
         data = {}
@@ -104,9 +136,9 @@ class RarbgClient(BaseClient):
 
         return data
 
-
     async def fetch_data(
-            self, page: int, search_terms: str | None = None, search_mode: Literal["tv", "movies", "search", "torrents"] = "torrents", categories: list[str] | None = None
+            self, page: int, search_terms: str | None = None,
+            search_mode: Literal["tv", "movies", "search", "torrents"] = "torrents", categories: list[str] | None = None
     ) -> AsyncGenerator[RarbgItemSchema, None]:
         params: list[tuple[str, str]] = []
         if search_terms:
@@ -116,12 +148,17 @@ class RarbgClient(BaseClient):
         for category in categories or []:
             params.append(("category[]", category))
 
+        # Build query string manually if params exist since FlareSolverr takes a plain URL string
+        query_path = f"{search_mode}/{page}"
+        if params:
+            query_string = "&".join([f"{k}={v}" for k, v in params])
+            query_path = f"{query_path}?{query_string}"
+
         response_str = await self._request(
             method="GET",
-            url=f"{search_mode}/{page}",
-            headers={ "User-Agent": "Mozilla/5.0" },
-            params=params,
+            url=query_path,
         )
+
         items = self._parse_response(response_str)
         for item in items:
             try:
@@ -131,4 +168,3 @@ class RarbgClient(BaseClient):
                              RarbgItemSchema.__class__.__name__,
                              err.json(include_url=False)
                              )
-
