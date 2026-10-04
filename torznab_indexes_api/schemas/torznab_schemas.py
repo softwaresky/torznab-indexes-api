@@ -40,16 +40,12 @@ class TorznabBaseParams(BaseModel):
     limit: int | None = Field(default=50, gt=0)
     tag: str | None = None
 
-
     @computed_field
     @property
     def page(self) -> int:
-        if isinstance(self.offset, int) and isinstance(self.limit, int) and self.limit > 0:
-            if self.offset > self.limit:
-                return self.offset // self.limit
-            else:
-                return 1
-        return 0
+        if self.offset is not None and self.limit is not None and self.limit > 0:
+            return (self.offset // self.limit) + 1
+        return 1
 
 
 # -----------------------------
